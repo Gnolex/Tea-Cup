@@ -819,82 +819,136 @@ a{ color:inherit; text-decoration:none; }
      3 · FRAME EXTRACTION — video → canvas → jpeg blobs
          The <video> is never shown and never plays for the user;
          it exists purely as a decode source.
+
+         The reel is fetched in full before a single seek happens.
+         Left to stream, the browser only holds a window of the file,
+         so seeking backwards re-requests byte ranges — on a CDN that
+         turns extraction into hundreds of round trips and hands back
+         stale frames whenever a seek outruns its data. One download
+         up front makes every seek land in memory.
      ========================================================== */
-  function extractFrames() {
+  const VIDEO_SRC = '1.mp4';
+  const DL_SHARE  = 0.34;          // share of the loading bar given to download
+
+  async function extractFrames() {
+    const video = document.createElement('video');
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+    video.preload = 'auto';
+    video.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;top:-10px;left:-10px;';
+    document.body.appendChild(video);
+
+    let objectUrl = null;
+    try {
+      objectUrl = await downloadReel(VIDEO_SRC, p => setProgress(p * DL_SHARE));
+      video.src = objectUrl;
+    } catch (e) {
+      console.warn('[gnolex] reel prefetch failed, streaming instead:', e);
+      video.src = VIDEO_SRC;
+    }
+
+    try {
+      await onceEvent(video, 'loadedmetadata', 45000);
+
+      const duration = video.duration;
+      if (!isFinite(duration) || duration <= 0) throw new Error('bad duration');
+
+      // only needed when the prefetch failed and we are streaming
+      if (!objectUrl) await bufferUp(video, duration, 45000);
+
+      // -- 3a. offscreen capture surface, aspect-locked to the source
+      const vw = video.videoWidth  || 1920;
+      const vh = video.videoHeight || 1080;
+      const capW = Math.min(CAP_W, vw);
+      const capH = Math.round(capW * vh / vw);
+
+      const off  = document.createElement('canvas');
+      off.width  = capW;
+      off.height = capH;
+      const octx = off.getContext('2d', { alpha: false });
+
+      const last = Math.max(0, duration - 1 / 30);
+
+      // -- 3b. walk the reel
+      for (let i = 0; i < FRAMES; i++) {
+        const t = (i / (FRAMES - 1)) * last;
+        await seekTo(video, t);
+        octx.drawImage(video, 0, 0, capW, capH);
+
+        const url = await new Promise(res => {
+          if (off.toBlob) off.toBlob(b => res(b ? URL.createObjectURL(b) : off.toDataURL('image/jpeg', QUALITY)), 'image/jpeg', QUALITY);
+          else res(off.toDataURL('image/jpeg', QUALITY));
+        });
+
+        const img = new Image();
+        img.decoding = 'async';
+        img.src = url;
+        frames[i] = img;
+
+        // hold the first handful so the opening frame is never blank
+        if (i < 8) { try { await img.decode(); } catch (_) {} }
+        else if (img.decode) { img.decode().catch(() => {}); }
+
+        setProgress(DL_SHARE + (1 - DL_SHARE) * ((i + 1) / FRAMES));
+
+        // let the compositor breathe every so often
+        if ((i & 7) === 7) await new Promise(r => requestAnimationFrame(r));
+      }
+
+      // -- 3c. one extra, larger grab for the newsletter backdrop
+      const bg  = document.createElement('canvas');
+      bg.width  = Math.min(1920, vw);
+      bg.height = Math.round(bg.width * vh / vw);
+      await seekTo(video, last * 0.62);
+      bg.getContext('2d').drawImage(video, 0, 0, bg.width, bg.height);
+      bg.toBlob(b => {
+        if (b) document.documentElement.style.setProperty('--news-bg', "url('" + URL.createObjectURL(b) + "')");
+      }, 'image/jpeg', 0.86);
+
+    } finally {
+      video.removeAttribute('src');
+      video.load();
+      video.remove();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);   // frames are already blobs of their own
+    }
+  }
+
+  /* Stream the file down with a real byte counter, so the bar reflects
+     actual bytes rather than a guess. */
+  async function downloadReel(url, onProgress) {
+    const res = await fetch(url, { cache: 'force-cache' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.body || !res.body.getReader) return URL.createObjectURL(await res.blob());
+
+    const total  = Number(res.headers.get('content-length')) || 0;
+    const reader = res.body.getReader();
+    const chunks = [];
+    let got = 0;
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      got += value.length;
+      if (total) onProgress(clamp(got / total, 0, 1));
+    }
+    onProgress(1);
+    return URL.createObjectURL(new Blob(chunks, { type: 'video/mp4' }));
+  }
+
+  function onceEvent(el, name, timeout) {
     return new Promise((resolve, reject) => {
-      const video = document.createElement('video');
-      video.src = '1.mp4';
-      video.muted = true;
-      video.defaultMuted = true;
-      video.playsInline = true;
-      video.preload = 'auto';
-      video.crossOrigin = 'anonymous';
-      video.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;top:-10px;left:-10px;';
-      document.body.appendChild(video);
-
-      const fail = e => { video.remove(); reject(e || new Error('video error')); };
-      video.addEventListener('error', () => fail(new Error('video failed to load')), { once: true });
-
-      video.addEventListener('loadedmetadata', async () => {
-        try {
-          const duration = video.duration;
-          if (!isFinite(duration) || duration <= 0) throw new Error('bad duration');
-
-          // -- 3a. buffer as much as we can; seeks on buffered data are fast
-          await bufferUp(video, duration, 9000);
-
-          // -- 3b. offscreen capture surface, aspect-locked to the source
-          const vw = video.videoWidth  || 1920;
-          const vh = video.videoHeight || 1080;
-          const capW = Math.min(CAP_W, vw);
-          const capH = Math.round(capW * vh / vw);
-
-          const off  = document.createElement('canvas');
-          off.width  = capW;
-          off.height = capH;
-          const octx = off.getContext('2d', { alpha: false });
-
-          const last = Math.max(0, duration - 1 / 30);
-
-          for (let i = 0; i < FRAMES; i++) {
-            const t = (i / (FRAMES - 1)) * last;
-            await seekTo(video, t);
-            octx.drawImage(video, 0, 0, capW, capH);
-
-            const url = await new Promise(res => {
-              if (off.toBlob) off.toBlob(b => res(b ? URL.createObjectURL(b) : off.toDataURL('image/jpeg', QUALITY)), 'image/jpeg', QUALITY);
-              else res(off.toDataURL('image/jpeg', QUALITY));
-            });
-
-            const img = new Image();
-            img.decoding = 'async';
-            img.src = url;
-            frames[i] = img;
-
-            // hold the first handful so the opening frame is never blank
-            if (i < 8) { try { await img.decode(); } catch (_) {} }
-            else if (img.decode) { img.decode().catch(() => {}); }
-
-            setProgress(0.15 + 0.85 * ((i + 1) / FRAMES));
-
-            // let the compositor breathe every so often
-            if ((i & 7) === 7) await new Promise(r => requestAnimationFrame(r));
-          }
-
-          // -- 3c. one extra, larger grab for the newsletter backdrop
-          const bg  = document.createElement('canvas');
-          bg.width  = Math.min(1920, vw);
-          bg.height = Math.round(bg.width * vh / vw);
-          await seekTo(video, last * 0.62);
-          bg.getContext('2d').drawImage(video, 0, 0, bg.width, bg.height);
-          bg.toBlob(b => {
-            if (b) document.documentElement.style.setProperty('--news-bg', "url('" + URL.createObjectURL(b) + "')");
-          }, 'image/jpeg', 0.86);
-
-          video.remove();
-          resolve();
-        } catch (e) { fail(e); }
-      }, { once: true });
+      const clean = () => {
+        clearTimeout(timer);
+        el.removeEventListener(name, ok);
+        el.removeEventListener('error', bad);
+      };
+      const ok  = () => { clean(); resolve(); };
+      const bad = () => { clean(); reject(new Error(name + ' never fired')); };
+      const timer = setTimeout(bad, timeout);
+      el.addEventListener(name, ok, { once: true });
+      el.addEventListener('error', bad, { once: true });
     });
   }
 
@@ -905,7 +959,7 @@ a{ color:inherit; text-decoration:none; }
       const tick = () => {
         const b = video.buffered;
         const end = b.length ? b.end(b.length - 1) : 0;
-        setProgress(0.15 * clamp(end / duration, 0, 1));
+        setProgress(DL_SHARE * clamp(end / duration, 0, 1));
         if (end >= duration - 0.25 || performance.now() - t0 > timeout) done();
       };
       const id = setInterval(tick, 120);
@@ -927,7 +981,7 @@ a{ color:inherit; text-decoration:none; }
         video.removeEventListener('seeked', finish);
         resolve();
       };
-      const timer = setTimeout(finish, 900);   // never hang the loader on one bad seek
+      const timer = setTimeout(finish, 3000);   // never hang the loader on one bad seek
       video.addEventListener('seeked', finish);
       try { video.currentTime = t; } catch (_) { finish(); }
     });
