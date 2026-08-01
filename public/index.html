@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gnolex AI — Rooted in the hills</title>
+<meta name="description" content="A single bag. Ancient wisdom inside. Hand-plucked second flush Assam, from the Brahmaputra valley.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   TOKENS
+   ============================================================ */
+:root{
+  --ink:        #030303;
+  --amber:      #f59e0b;
+  --amber-90:   rgba(245,158,11,0.9);
+  --amber-60:   rgba(245,158,11,0.6);
+  --amber-30:   rgba(245,158,11,0.3);
+  --amber-15:   rgba(245,158,11,0.15);
+  --amber-08:   rgba(245,158,11,0.08);
+  --faint:      rgba(255,255,255,0.42);
+  --dim:        rgba(255,255,255,0.6);
+  --display:    'Cormorant Garamond', Georgia, serif;
+  --body:       'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ease:       cubic-bezier(0.16, 1, 0.3, 1);
+  --news-bg:    url('newsletter-bg.jpg');
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+
+html{ scroll-behavior:auto; }
+
+body{
+  margin:0;
+  background:var(--ink);
+  color:#fff;
+  font-family:var(--body);
+  font-weight:300;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  overflow-x:hidden;
+}
+body.is-loading{ overflow:hidden; height:100vh; }
+
+img{ display:block; max-width:100%; }
+a{ color:inherit; text-decoration:none; }
+
+::selection{ background:rgba(245,158,11,0.3); color:#fff; }
+
+/* ============================================================
+   LOADING SCREEN
+   ============================================================ */
+#loader{
+  position:fixed; inset:0; z-index:1000;
+  background:var(--ink);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:34px;
+  transition:opacity .8s ease, visibility .8s ease;
+}
+#loader.done{ opacity:0; visibility:hidden; pointer-events:none; }
+
+#loader .mark{
+  font-family:var(--display);
+  font-size:48px;
+  font-weight:300;
+  letter-spacing:0.3em;
+  color:var(--amber);
+  text-indent:0.3em;
+  line-height:1;
+}
+#loader .bar{
+  width:200px; height:1px;
+  background:var(--amber-15);
+  overflow:hidden;
+}
+#loader .bar > i{
+  display:block; height:100%; width:0%;
+  background:var(--amber);
+  transition:width .25s linear;
+}
+#loader .note{
+  font-family:var(--body);
+  font-size:11px;
+  font-weight:300;
+  letter-spacing:0.22em;
+  text-transform:lowercase;
+  color:rgba(255,255,255,0.28);
+}
+#loader .pct{
+  position:absolute; bottom:40px;
+  font-family:var(--body); font-size:10px;
+  letter-spacing:0.3em; color:rgba(255,255,255,0.18);
+}
+
+/* ============================================================
+   FIXED HEADER
+   ============================================================ */
+#header{
+  position:fixed; top:0; left:0; right:0;
+  height:64px; z-index:200;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 clamp(20px,4vw,52px);
+  background:none; border:0;
+  pointer-events:none;
+}
+#header > *{ pointer-events:auto; }
+#header .brand{
+  font-family:var(--display);
+  font-size:15px; font-weight:400;
+  letter-spacing:0.25em;
+  color:var(--amber);
+  text-indent:0.25em;
+}
+#header .shop{
+  font-family:var(--body);
+  font-size:11px; font-weight:400;
+  text-transform:uppercase;
+  letter-spacing:0.2em;
+  color:rgba(255,255,255,0.6);
+  transition:color .4s var(--ease);
+}
+#header .shop:hover{ color:var(--amber); }
+
+/* ============================================================
+   SCROLL PROGRESS — right edge
+   ============================================================ */
+#progress{
+  position:fixed; top:0; right:0;
+  width:2px; height:100vh; z-index:100;
+  background:rgba(245,158,11,0.15);
+}
+#progress > i{
+  display:block; width:100%; height:100%;
+  background:rgba(245,158,11,0.8);
+  transform:scaleY(0); transform-origin:top center;
+}
+
+/* ============================================================
+   HERO — 800vh scroll, sticky canvas
+   ============================================================ */
+#hero{ position:relative; height:800vh; }
+
+.sticky{
+  position:sticky; top:0;
+  height:100vh; width:100vw;
+  overflow:hidden;
+  background:var(--ink);
+}
+#frame{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  display:block;
+}
+
+/* scrims keep type legible without ever washing out the subject */
+.scrim{ position:absolute; inset:0; pointer-events:none; }
+.scrim.top{
+  background:linear-gradient(to bottom, rgba(3,3,3,0.62) 0%, rgba(3,3,3,0.18) 26%, rgba(3,3,3,0) 46%);
+}
+.scrim.bottom{
+  background:linear-gradient(to top, rgba(3,3,3,0.72) 0%, rgba(3,3,3,0.22) 28%, rgba(3,3,3,0) 52%);
+}
+.scrim.vignette{
+  background:radial-gradient(120% 90% at 50% 45%, rgba(3,3,3,0) 42%, rgba(3,3,3,0.55) 100%);
+}
+
+.overlays{ position:absolute; inset:0; pointer-events:none; }
+.beat{
+  position:absolute;
+  opacity:0;
+  will-change:opacity, transform;
+}
+
+/* — scroll cue — */
+#cue{
+  left:50%; bottom:44px; transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+}
+#cue span{
+  font-family:var(--body); font-size:10px;
+  letter-spacing:0.42em; text-transform:uppercase;
+  color:rgba(255,255,255,0.45); text-indent:0.42em;
+}
+#cue i{
+  display:block; width:1px; height:56px;
+  background:linear-gradient(to bottom, var(--amber-60), rgba(245,158,11,0));
+}
+
+/* — beat 1 : Gnolex AI — */
+#beat-1{
+  top:16vh; left:0; right:0;
+  text-align:center;
+  font-family:var(--display);
+  font-weight:300;
+  font-size:clamp(42px, 8.4vw, 120px);
+  line-height:1;
+  letter-spacing:0.3em;
+  text-indent:0.3em;
+  color:rgba(245,158,11,0.9);
+}
+#beat-1 .sub{
+  display:block; margin-top:30px;
+  font-family:var(--body); font-size:10px; font-weight:300;
+  letter-spacing:0.5em; text-indent:0.5em;
+  color:rgba(255,255,255,0.4);
+}
+
+/* — beat 2 : bottom left — */
+#beat-2{
+  left:8%; bottom:15%;
+  max-width:min(660px, 62vw);
+  font-family:var(--display); font-style:italic; font-weight:300;
+  font-size:clamp(24px, 3.4vw, 42px);
+  line-height:1.32;
+  color:rgba(255,255,255,0.85);
+}
+
+/* — beat 3 : right aligned — */
+#beat-3{
+  right:8%; top:26%;
+  max-width:min(560px, 56vw);
+  text-align:right;
+  font-family:var(--display); font-style:italic; font-weight:300;
+  font-size:clamp(22px, 2.9vw, 38px);
+  line-height:1.34;
+  color:rgba(255,255,255,0.85);
+}
+
+/* — beat 4 : lower left spec block — */
+#beat-4{ left:8%; bottom:17%; max-width:min(600px,60vw); }
+#beat-4 .label{
+  display:block; margin-bottom:20px;
+  font-family:var(--body); font-size:10px; font-weight:400;
+  letter-spacing:0.44em; text-transform:uppercase; text-indent:0.44em;
+  color:var(--amber-90);
+}
+#beat-4 .line{
+  font-family:var(--display); font-weight:300;
+  font-size:clamp(22px, 2.9vw, 38px);
+  line-height:1.36;
+  color:rgba(255,255,255,0.88);
+}
+
+/* — beat 5 : centred statement — */
+#beat-5{
+  left:0; right:0; top:50%;
+  transform:translateY(-50%);
+  text-align:center;
+  font-family:var(--display); font-weight:300;
+  font-size:clamp(28px, 4.6vw, 66px);
+  line-height:1.24;
+  letter-spacing:0.02em;
+  color:rgba(255,255,255,0.9);
+}
+
+/* — beat 6 : closing — */
+#beat-6{
+  left:0; right:0; bottom:16%;
+  text-align:center;
+  font-family:var(--display); font-weight:300;
+  font-size:clamp(26px, 3.8vw, 54px);
+  letter-spacing:0.16em; text-indent:0.16em;
+  color:rgba(245,158,11,0.92);
+}
+
+/* word-by-word units */
+.w{
+  display:inline-block;
+  opacity:0;
+  will-change:opacity, transform, filter;
+}
+
+/* ============================================================
+   SHARED SECTION FURNITURE
+   ============================================================ */
+.section{ position:relative; z-index:2; background:var(--ink); }
+.wrap{ width:min(1240px, 88vw); margin:0 auto; }
+
+.eyebrow{
+  font-family:var(--body); font-size:10px; font-weight:400;
+  letter-spacing:0.44em; text-transform:uppercase; text-indent:0.44em;
+  color:var(--amber-60);
+}
+.rule{ height:1px; background:var(--amber-15); border:0; margin:0; }
+
+.reveal{ opacity:0; transform:translateY(26px); }
+
+/* ============================================================
+   PHILOSOPHY
+   ============================================================ */
+#philosophy{ padding:clamp(120px,17vh,200px) 0 clamp(110px,15vh,180px); }
+#philosophy .wrap{
+  display:grid;
+  grid-template-columns:minmax(0,0.85fr) minmax(0,1.15fr);
+  gap:clamp(40px,7vw,110px);
+  align-items:start;
+}
+#philosophy h2{
+  margin:22px 0 0;
+  font-family:var(--display); font-weight:300;
+  font-size:clamp(32px,4.2vw,58px);
+  line-height:1.16; letter-spacing:0.01em;
+  color:#fff;
+}
+#philosophy h2 em{ font-style:italic; color:var(--amber-90); }
+#philosophy p{
+  margin:0 0 26px;
+  font-size:14px; line-height:2.05;
+  color:rgba(255,255,255,0.5);
+  max-width:56ch;
+}
+#philosophy .stats{
+  display:flex; flex-wrap:wrap; gap:clamp(28px,5vw,64px);
+  margin-top:52px; padding-top:34px;
+  border-top:1px solid var(--amber-15);
+}
+#philosophy .stat b{
+  display:block;
+  font-family:var(--display); font-weight:300;
+  font-size:clamp(30px,3.4vw,44px);
+  color:var(--amber);
+  line-height:1;
+}
+#philosophy .stat span{
+  display:block; margin-top:12px;
+  font-size:10px; letter-spacing:0.28em; text-transform:uppercase;
+  color:rgba(255,255,255,0.34);
+}
+
+/* ============================================================
+   COLLECTION — cards
+   ============================================================ */
+#collection{ padding:clamp(96px,13vh,150px) 0 clamp(120px,17vh,200px); }
+#collection .head{
+  display:flex; align-items:flex-end; justify-content:space-between;
+  gap:40px; margin-bottom:clamp(44px,6vw,70px);
+}
+#collection h2{
+  margin:20px 0 0;
+  font-family:var(--display); font-weight:300;
+  font-size:clamp(34px,4.6vw,64px);
+  line-height:1.06; color:#fff;
+}
+#collection h2 em{ font-style:italic; color:var(--amber-90); }
+#collection .head p{
+  margin:0; max-width:34ch; text-align:right;
+  font-size:13px; line-height:1.9; color:rgba(255,255,255,0.4);
+}
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0,1fr));
+  gap:clamp(18px,2vw,30px);
+}
+/* the wrapper owns the scroll reveal so the card keeps its own
+   transform free for the hover lift — the two must not share a property */
+.cards > .reveal{ display:flex; min-width:0; }
+
+.card{
+  flex:1 1 auto; min-width:0;
+  position:relative;
+  background:rgba(255,255,255,0.014);
+  border:1px solid rgba(255,255,255,0.07);
+  overflow:hidden;
+  transform:translateY(0);
+  box-shadow:0 0 0 rgba(0,0,0,0);
+  transition:transform .4s var(--ease),
+             box-shadow .4s var(--ease),
+             border-color .4s var(--ease),
+             background-color .4s var(--ease);
+}
+.card:hover{
+  transform:translateY(-12px);
+  border-color:rgba(245,158,11,0.45);
+  background:rgba(245,158,11,0.03);
+  box-shadow:0 34px 70px -22px rgba(0,0,0,0.85),
+             0 0 46px -10px rgba(245,158,11,0.28),
+             inset 0 0 0 1px rgba(245,158,11,0.12);
+}
+
+.card .shot{
+  position:relative;
+  height:220px;
+  overflow:hidden;
+  background:#070707;
+}
+.card .shot img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+  transform:scale(1.02);
+  filter:saturate(0.94) brightness(0.9) contrast(1.02);
+  transition:transform .9s var(--ease), filter .6s var(--ease);
+}
+.card:hover .shot img{
+  transform:scale(1.08);
+  filter:saturate(1) brightness(1) contrast(1);
+}
+/* fade the foot of the photo into the card surface so there is no seam */
+.card .shot::after{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(to top,
+    #030303 0%,
+    rgba(3,3,3,0.82) 14%,
+    rgba(3,3,3,0.28) 40%,
+    rgba(3,3,3,0) 66%);
+}
+.card .idx{
+  position:absolute; top:18px; left:20px; z-index:2;
+  font-family:var(--body); font-size:10px; letter-spacing:0.3em;
+  color:rgba(255,255,255,0.4);
+}
+.card .body{ padding:26px 24px 28px; }
+.card .origin{
+  font-size:9px; letter-spacing:0.4em; text-transform:uppercase;
+  color:var(--amber-60); text-indent:0.4em;
+}
+.card h3{
+  margin:14px 0 12px;
+  font-family:var(--display); font-weight:300;
+  font-size:clamp(23px,2.1vw,29px);
+  line-height:1.16; color:#fff;
+}
+.card .notes{
+  margin:0 0 24px;
+  font-size:12.5px; line-height:1.95;
+  color:rgba(255,255,255,0.42);
+  min-height:3.9em;
+}
+.card .foot{
+  display:flex; align-items:center; justify-content:space-between;
+  padding-top:18px; border-top:1px solid rgba(255,255,255,0.07);
+  transition:border-color .4s var(--ease);
+}
+.card:hover .foot{ border-color:var(--amber-15); }
+.card .price{
+  font-family:var(--display); font-size:20px; font-weight:300;
+  color:rgba(255,255,255,0.86);
+}
+.card .cta{
+  font-size:10px; letter-spacing:0.28em; text-transform:uppercase;
+  color:var(--amber-60);
+  transition:color .4s var(--ease), letter-spacing .4s var(--ease);
+}
+.card:hover .cta{ color:var(--amber); letter-spacing:0.34em; }
+
+/* ============================================================
+   NEWSLETTER
+   ============================================================ */
+#newsletter{
+  position:relative;
+  padding:clamp(130px,20vh,220px) 0;
+  text-align:center;
+  background-image:
+    linear-gradient(to bottom,
+      rgba(3,3,3,0.88) 0%,
+      rgba(3,3,3,0.60) 35%,
+      rgba(3,3,3,0.65) 65%,
+      rgba(3,3,3,0.95) 100%),
+    var(--news-bg);
+  background-size:cover;
+  background-position:center;
+  background-attachment:fixed;
+}
+#newsletter h2{
+  margin:26px 0 18px;
+  font-family:var(--display); font-weight:300;
+  font-size:clamp(34px,5.2vw,52px);
+  line-height:1.14; color:#fff;
+}
+#newsletter .sub{
+  margin:0 auto 54px;
+  font-family:var(--body); font-size:13px; font-weight:300;
+  letter-spacing:0.02em;
+  color:rgba(255,255,255,0.45);
+}
+#news-form{
+  display:flex; align-items:center; justify-content:center;
+  gap:26px; flex-wrap:wrap;
+}
+#news-form input{
+  width:320px; max-width:78vw;
+  background:transparent;
+  border:0; border-bottom:1px solid var(--amber);
+  padding:12px 2px;
+  font-family:var(--body); font-size:13px; font-weight:300;
+  letter-spacing:0.06em; color:#fff;
+  outline:none;
+  transition:border-color .4s var(--ease);
+}
+#news-form input::placeholder{ color:rgba(255,255,255,0.3); }
+#news-form input:focus{ border-bottom-color:#fbbf24; }
+#news-form button{
+  background:none; border:0; padding:12px 0; cursor:pointer;
+  font-family:var(--body); font-size:11px; font-weight:400;
+  letter-spacing:0.28em; text-transform:uppercase;
+  color:var(--amber);
+  position:relative;
+}
+#news-form button::after{
+  content:''; position:absolute; left:0; right:0; bottom:8px;
+  height:1px; background:var(--amber);
+  transform:scaleX(0); transform-origin:left;
+  transition:transform .4s var(--ease);
+}
+#news-form button:hover::after{ transform:scaleX(1); }
+#news-msg{
+  margin-top:26px; height:14px;
+  font-size:11px; letter-spacing:0.24em; text-transform:uppercase;
+  color:var(--amber-60);
+  opacity:0; transition:opacity .5s ease;
+}
+#news-msg.show{ opacity:1; }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+#footer{
+  border-top:1px solid rgba(245,158,11,0.15);
+  padding:38px 0;
+}
+#footer .wrap{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:26px; flex-wrap:wrap;
+}
+#footer .brand{
+  font-family:var(--display); font-size:18px; font-weight:400;
+  letter-spacing:0.22em; color:var(--amber); text-indent:0.22em;
+}
+#footer .copy{
+  font-family:var(--body); font-size:11px; font-weight:300;
+  color:rgba(255,255,255,0.32);
+}
+#footer .social{
+  font-family:var(--body); font-size:11px; font-weight:300;
+  color:rgba(255,255,255,0.42);
+}
+#footer .social a{ transition:color .3s var(--ease); }
+#footer .social a:hover{ color:var(--amber); text-decoration:underline; text-underline-offset:4px; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width:960px){
+  #philosophy .wrap{ grid-template-columns:1fr; gap:36px; }
+  #collection .head{ flex-direction:column; align-items:flex-start; }
+  #collection .head p{ text-align:left; }
+  .cards{ grid-template-columns:1fr; }
+  #newsletter{ background-attachment:scroll; }
+  #beat-2, #beat-4{ left:7%; right:7%; max-width:none; }
+  #beat-3{ right:7%; left:7%; max-width:none; }
+  #footer .wrap{ flex-direction:column; text-align:center; gap:18px; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .card,.card .shot canvas,.card .shot img{ transition:none; }
+}
+</style>
+</head>
+<body class="is-loading">
+
+<!-- ══════════════ LOADING ══════════════ -->
+<div id="loader">
+  <div class="mark">Gnolex AI</div>
+  <div class="bar"><i id="bar-fill"></i></div>
+  <div class="note">preparing your ritual...</div>
+  <div class="pct" id="loader-pct">00</div>
+</div>
+
+<!-- ══════════════ HEADER ══════════════ -->
+<header id="header">
+  <div class="brand">Gnolex AI</div>
+  <a class="shop" href="#collection">Shop</a>
+</header>
+
+<!-- ══════════════ SCROLL PROGRESS ══════════════ -->
+<div id="progress"><i id="progress-fill"></i></div>
+
+<!-- ══════════════ HERO ══════════════ -->
+<section id="hero">
+  <div class="sticky">
+    <canvas id="frame"></canvas>
+    <div class="scrim vignette"></div>
+    <div class="scrim top"></div>
+    <div class="scrim bottom"></div>
+
+    <div class="overlays">
+
+      <div class="beat" id="cue">
+        <span>Scroll</span>
+        <i></i>
+      </div>
+
+      <div class="beat" id="beat-1">
+        Gnolex AI
+        <span class="sub">Brahmaputra Valley &nbsp;·&nbsp; Est. 1873</span>
+      </div>
+
+      <div class="beat" id="beat-2" data-split>
+        A single bag.<br>Ancient wisdom inside.
+      </div>
+
+      <div class="beat" id="beat-3" data-split>
+        Hand-plucked at first light,<br>while the mist still holds the leaf.
+      </div>
+
+      <div class="beat" id="beat-4">
+        <span class="label">Second Flush</span>
+        <div class="line" data-split>Golden tips. Malty depth.<br>A finish that refuses to leave.</div>
+      </div>
+
+      <div class="beat" id="beat-5" data-split>
+        The hills remember<br>every season they have given.
+      </div>
+
+      <div class="beat" id="beat-6" data-split>
+        Steep. Breathe. Begin.
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ PHILOSOPHY ══════════════ -->
+<section class="section" id="philosophy">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow reveal">The Origin</div>
+      <h2 class="reveal">Grown slowly,<br>because <em>haste</em> tastes<br>of nothing.</h2>
+    </div>
+    <div>
+      <p class="reveal">Our gardens sit on the flood plain of the Brahmaputra, where the soil is heavy with silt and the air stays thick from March until October. It is not a comfortable place to grow tea. That discomfort is the entire point — the leaf works harder, and the cup carries it.</p>
+      <p class="reveal">Every bag is a second flush harvest, picked between late May and June, in the twelve days when the tips turn gold. Two leaves and a bud. Nothing beneath. The rest of the bush is left to the season.</p>
+      <p class="reveal">We do not blend to a standard. We bottle a year, and each year arrives with its own weather inside it.</p>
+      <div class="stats">
+        <div class="stat reveal"><b>1873</b><span>First garden</span></div>
+        <div class="stat reveal"><b>12</b><span>Days of harvest</span></div>
+        <div class="stat reveal"><b>2+1</b><span>Leaves &amp; a bud</span></div>
+        <div class="stat reveal"><b>420m</b><span>Above the river</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="rule">
+
+<!-- ══════════════ COLLECTION ══════════════ -->
+<section class="section" id="collection">
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <div class="eyebrow reveal">The Collection</div>
+        <h2 class="reveal">Three cups.<br>One <em>valley</em>.</h2>
+      </div>
+      <p class="reveal">Small lots, released once a year and never repeated. When a harvest is gone, it is gone.</p>
+    </div>
+
+    <div class="cards">
+
+      <div class="reveal">
+        <article class="card">
+          <div class="shot">
+            <img src="dawn-product.jpg" alt="Golden Tip Reserve loose leaf, photographed at dawn" width="2752" height="1536" loading="lazy" decoding="async">
+            <span class="idx">01</span>
+          </div>
+          <div class="body">
+            <div class="origin">Jorhat · Second Flush</div>
+            <h3>Golden Tip Reserve</h3>
+            <p class="notes">Malt, dried apricot and a slow honeyed finish. The tips are sorted by hand, twice, before they ever meet water.</p>
+            <div class="foot"><span class="price">₹ 2,400</span><span class="cta">Add ⟶</span></div>
+          </div>
+        </article>
+      </div>
+
+      <div class="reveal">
+        <article class="card">
+          <div class="shot">
+            <img src="dusk-product.jpg" alt="Morning Mist loose leaf, photographed at dusk" width="2752" height="1536" loading="lazy" decoding="async">
+            <span class="idx">02</span>
+          </div>
+          <div class="body">
+            <div class="origin">Dibrugarh · First Flush</div>
+            <h3>Morning Mist</h3>
+            <p class="notes">Brighter, greener, almost sharp. Picked in the fortnight after the first rain, when the bush is still surprised to be awake.</p>
+            <div class="foot"><span class="price">₹ 1,950</span><span class="cta">Add ⟶</span></div>
+          </div>
+        </article>
+      </div>
+
+      <div class="reveal">
+        <article class="card">
+          <div class="shot">
+            <img src="night-product.jpg" alt="The Ritual Box, photographed at night" width="2752" height="1536" loading="lazy" decoding="async">
+            <span class="idx">03</span>
+          </div>
+          <div class="body">
+            <div class="origin">Sivasagar · Single Estate</div>
+            <h3>The Ritual Box</h3>
+            <p class="notes">Thirty bags, a clay steeping cup, and a card telling you exactly which twelve days made it. Made to be finished, not kept.</p>
+            <div class="foot"><span class="price">₹ 4,600</span><span class="cta">Add ⟶</span></div>
+          </div>
+        </article>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ NEWSLETTER ══════════════ -->
+<section class="section" id="newsletter">
+  <div class="wrap">
+    <div class="eyebrow reveal">The List</div>
+    <h2 class="reveal">Join the ceremony.</h2>
+    <p class="sub reveal">Be the first to know. No noise. Only ritual.</p>
+    <form id="news-form" class="reveal" novalidate>
+      <input type="email" id="news-email" placeholder="your email" autocomplete="email" aria-label="Email address">
+      <button type="submit">Begin ⟶</button>
+    </form>
+    <div id="news-msg"></div>
+  </div>
+</section>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer id="footer">
+  <div class="wrap">
+    <div class="brand">Gnolex AI</div>
+    <div class="copy">© 2026 Gnolex AI. Rooted in the hills.</div>
+    <div class="social"><a href="#">Instagram</a> · <a href="#">YouTube</a></div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  /* ==========================================================
+     0 · CONFIG — scaled to the device so we never blow memory
+     ========================================================== */
+  const SMALL   = window.innerWidth < 900;
+  const DPR     = Math.min(window.devicePixelRatio || 1, 2);
+  const MEM     = navigator.deviceMemory || 8;
+
+  const FRAMES  = SMALL ? 110 : (MEM < 6 ? 150 : 220);
+  const CAP_W   = SMALL ? 900 : Math.min(1600, Math.round(window.innerWidth * Math.min(DPR, 1.5)));
+  const QUALITY = 0.82;
+
+  const canvas  = document.getElementById('frame');
+  const ctx     = canvas.getContext('2d', { alpha: false });
+  const frames  = new Array(FRAMES);
+
+  let heroProgress = 0;
+  let wantIndex    = 0;
+  let drawnIndex   = -1;
+  let ready        = false;
+
+  const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
+  const norm  = (v, a, b) => clamp((v - a) / (b - a || 1e-6), 0, 1);
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+
+  /* ==========================================================
+     1 · LOADING SCREEN
+     ========================================================== */
+  const loader  = document.getElementById('loader');
+  const barFill = document.getElementById('bar-fill');
+  const pctEl   = document.getElementById('loader-pct');
+  let shownPct  = -1;
+
+  function setProgress(p) {
+    const pct = Math.round(clamp(p, 0, 1) * 100);
+    if (pct === shownPct) return;
+    shownPct = pct;
+    barFill.style.width = pct + '%';
+    pctEl.textContent = String(pct).padStart(2, '0');
+  }
+
+  function hideLoader() {
+    loader.classList.add('done');
+    document.body.classList.remove('is-loading');
+    setTimeout(() => { loader.remove(); ScrollTrigger.refresh(); }, 850);
+  }
+
+  /* ==========================================================
+     2 · CANVAS SIZING + COVER DRAW
+     ========================================================== */
+  function sizeCanvas() {
+    const w = window.innerWidth, h = window.innerHeight;
+    canvas.width  = Math.round(w * Math.min(DPR, 1.5));
+    canvas.height = Math.round(h * Math.min(DPR, 1.5));
+    canvas.style.width  = w + 'px';
+    canvas.style.height = h + 'px';
+    drawnIndex = -1;              // force a redraw at the new size
+  }
+
+  function drawCover(img) {
+    const cw = canvas.width, ch = canvas.height;
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+    if (!iw || !ih) return false;
+    const s = Math.max(cw / iw, ch / ih);
+    const w = iw * s, h = ih * s;
+    ctx.drawImage(img, (cw - w) * 0.5, (ch - h) * 0.5, w, h);
+    return true;
+  }
+
+  sizeCanvas();
+  ctx.fillStyle = '#030303';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  /* ==========================================================
+     3 · FRAME EXTRACTION — video → canvas → jpeg blobs
+         The <video> is never shown and never plays for the user;
+         it exists purely as a decode source.
+     ========================================================== */
+  function extractFrames() {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      video.src = '1.mp4';
+      video.muted = true;
+      video.defaultMuted = true;
+      video.playsInline = true;
+      video.preload = 'auto';
+      video.crossOrigin = 'anonymous';
+      video.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;top:-10px;left:-10px;';
+      document.body.appendChild(video);
+
+      const fail = e => { video.remove(); reject(e || new Error('video error')); };
+      video.addEventListener('error', () => fail(new Error('video failed to load')), { once: true });
+
+      video.addEventListener('loadedmetadata', async () => {
+        try {
+          const duration = video.duration;
+          if (!isFinite(duration) || duration <= 0) throw new Error('bad duration');
+
+          // -- 3a. buffer as much as we can; seeks on buffered data are fast
+          await bufferUp(video, duration, 9000);
+
+          // -- 3b. offscreen capture surface, aspect-locked to the source
+          const vw = video.videoWidth  || 1920;
+          const vh = video.videoHeight || 1080;
+          const capW = Math.min(CAP_W, vw);
+          const capH = Math.round(capW * vh / vw);
+
+          const off  = document.createElement('canvas');
+          off.width  = capW;
+          off.height = capH;
+          const octx = off.getContext('2d', { alpha: false });
+
+          const last = Math.max(0, duration - 1 / 30);
+
+          for (let i = 0; i < FRAMES; i++) {
+            const t = (i / (FRAMES - 1)) * last;
+            await seekTo(video, t);
+            octx.drawImage(video, 0, 0, capW, capH);
+
+            const url = await new Promise(res => {
+              if (off.toBlob) off.toBlob(b => res(b ? URL.createObjectURL(b) : off.toDataURL('image/jpeg', QUALITY)), 'image/jpeg', QUALITY);
+              else res(off.toDataURL('image/jpeg', QUALITY));
+            });
+
+            const img = new Image();
+            img.decoding = 'async';
+            img.src = url;
+            frames[i] = img;
+
+            // hold the first handful so the opening frame is never blank
+            if (i < 8) { try { await img.decode(); } catch (_) {} }
+            else if (img.decode) { img.decode().catch(() => {}); }
+
+            setProgress(0.15 + 0.85 * ((i + 1) / FRAMES));
+
+            // let the compositor breathe every so often
+            if ((i & 7) === 7) await new Promise(r => requestAnimationFrame(r));
+          }
+
+          // -- 3c. one extra, larger grab for the newsletter backdrop
+          const bg  = document.createElement('canvas');
+          bg.width  = Math.min(1920, vw);
+          bg.height = Math.round(bg.width * vh / vw);
+          await seekTo(video, last * 0.62);
+          bg.getContext('2d').drawImage(video, 0, 0, bg.width, bg.height);
+          bg.toBlob(b => {
+            if (b) document.documentElement.style.setProperty('--news-bg', "url('" + URL.createObjectURL(b) + "')");
+          }, 'image/jpeg', 0.86);
+
+          video.remove();
+          resolve();
+        } catch (e) { fail(e); }
+      }, { once: true });
+    });
+  }
+
+  function bufferUp(video, duration, timeout) {
+    return new Promise(resolve => {
+      const t0 = performance.now();
+      const done = () => { clearInterval(id); video.removeEventListener('progress', tick); resolve(); };
+      const tick = () => {
+        const b = video.buffered;
+        const end = b.length ? b.end(b.length - 1) : 0;
+        setProgress(0.15 * clamp(end / duration, 0, 1));
+        if (end >= duration - 0.25 || performance.now() - t0 > timeout) done();
+      };
+      const id = setInterval(tick, 120);
+      video.addEventListener('progress', tick);
+      // some browsers only fetch aggressively once playback is requested
+      const p = video.play();
+      if (p && p.then) p.then(() => video.pause()).catch(() => {});
+      tick();
+    });
+  }
+
+  function seekTo(video, t) {
+    return new Promise(resolve => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        video.removeEventListener('seeked', finish);
+        resolve();
+      };
+      const timer = setTimeout(finish, 900);   // never hang the loader on one bad seek
+      video.addEventListener('seeked', finish);
+      try { video.currentTime = t; } catch (_) { finish(); }
+    });
+  }
+
+  /* ==========================================================
+     4 · TEXT BEATS
+         [in-start, in-end, out-start, out-end] as hero progress,
+         plus an optional word-reveal window.
+     ========================================================== */
+  const BEATS = [
+    { el: '#cue',    win: [0.000, 0.010, 0.030, 0.045], rise: 0  },
+    { el: '#beat-1', win: [0.050, 0.070, 0.150, 0.175], rise: 26 },
+    { el: '#beat-2', win: [0.180, 0.200, 0.320, 0.350], rise: 0, words: [0.185, 0.285] },
+    { el: '#beat-3', win: [0.395, 0.415, 0.520, 0.548], rise: 0, words: [0.400, 0.495] },
+    { el: '#beat-4', win: [0.580, 0.600, 0.690, 0.718], rise: 22, words: [0.598, 0.678] },
+    { el: '#beat-5', win: [0.745, 0.765, 0.850, 0.878], rise: 0, words: [0.750, 0.838] },
+    { el: '#beat-6', win: [0.890, 0.912, 0.975, 0.998], rise: 0, words: [0.895, 0.960] }
+  ];
+
+  // split every [data-split] element into per-word spans
+  document.querySelectorAll('[data-split]').forEach(el => {
+    const out = [];
+    el.childNodes.forEach(node => {
+      if (node.nodeType === 3) {
+        node.textContent.split(/(\s+)/).forEach(tok => {
+          if (!tok.trim()) { out.push(document.createTextNode(tok)); return; }
+          const s = document.createElement('span');
+          s.className = 'w';
+          s.textContent = tok;
+          out.push(s);
+        });
+      } else {
+        out.push(node.cloneNode(true));
+      }
+    });
+    el.replaceChildren(...out);
+  });
+
+  BEATS.forEach(b => {
+    b.node  = document.querySelector(b.el);
+    b.spans = b.node ? Array.from(b.node.querySelectorAll('.w')) : [];
+    b._o = -1;
+    b._wp = -1;
+    // per-word duration, sized so the final word lands exactly on window end
+    b.dur = b.spans.length ? Math.min(0.55, 2.6 / b.spans.length) : 1;
+  });
+
+  function paintBeats(p) {
+    for (let i = 0; i < BEATS.length; i++) {
+      const b = BEATS[i], n = b.node;
+      if (!n) continue;
+      const w = b.win;
+      const o = Math.min(norm(p, w[0], w[1]), 1 - norm(p, w[2], w[3]));
+      const op = clamp(o, 0, 1);
+
+      if (Math.abs(op - b._o) > 0.004) {
+        n.style.opacity = op.toFixed(3);
+        b._o = op;
+      }
+      if (op <= 0.002) continue;
+
+      // block-level rise for beats without a word reveal
+      if (b.rise) {
+        const y = (1 - easeOut(norm(p, w[0], w[1]))) * b.rise;
+        n.style.transform = (b.el === '#cue' ? 'translateX(-50%) ' : '') + 'translateY(' + y.toFixed(2) + 'px)';
+      }
+
+      // word-by-word: overlapping cascade, last word completing on window end
+      if (b.words && b.spans.length) {
+        const wp = norm(p, b.words[0], b.words[1]);
+        if (Math.abs(wp - b._wp) < 0.002) continue;
+        b._wp = wp;
+
+        const n_ = b.spans.length;
+        const dur = b.dur;
+        const span = n_ > 1 ? (1 - dur) / (n_ - 1) : 0;
+        for (let k = 0; k < n_; k++) {
+          const t = easeOut(clamp((wp - k * span) / dur, 0, 1));
+          const s = b.spans[k];
+          s.style.opacity = t.toFixed(3);
+          s.style.transform = 'translateY(' + ((1 - t) * 16).toFixed(2) + 'px)';
+          s.style.filter = t > 0.985 ? 'none' : 'blur(' + ((1 - t) * 4).toFixed(2) + 'px)';
+        }
+      }
+    }
+  }
+
+  /* ==========================================================
+     5 · RENDER LOOP — one draw per animation frame, max
+     ========================================================== */
+  function tick() {
+    if (ready) {
+      if (wantIndex !== drawnIndex) {
+        const img = frames[wantIndex];
+        if (img && img.complete && drawCover(img)) {
+          drawnIndex = wantIndex;
+        }
+      }
+      paintBeats(heroProgress);
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  /* ==========================================================
+     6 · SCROLLTRIGGERS
+     ========================================================== */
+  function buildScroll() {
+    // hero: scroll position → frame index
+    ScrollTrigger.create({
+      trigger: '#hero',
+      start: 'top top',
+      end: 'bottom bottom',
+      onUpdate(self) {
+        heroProgress = self.progress;
+        wantIndex = clamp(Math.round(self.progress * (FRAMES - 1)), 0, FRAMES - 1);
+      },
+      onRefresh(self) {
+        heroProgress = self.progress;
+        wantIndex = clamp(Math.round(self.progress * (FRAMES - 1)), 0, FRAMES - 1);
+      }
+    });
+
+    // page-wide progress rail
+    const fill = document.getElementById('progress-fill');
+    gsap.to(fill, {
+      scaleY: 1,
+      ease: 'none',
+      scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 0.25 }
+    });
+
+    // section reveals — cards inherit a small index-based delay
+    gsap.utils.toArray('.reveal').forEach(el => {
+      const sibs = el.parentElement && el.parentElement.classList.contains('cards')
+        ? Array.from(el.parentElement.children).indexOf(el) : 0;
+      gsap.to(el, {
+        opacity: 1,
+        y: 0,
+        duration: 1.15,
+        delay: sibs * 0.09,
+        ease: 'power3.out',
+        scrollTrigger: { trigger: el, start: 'top 88%', once: true }
+      });
+    });
+  }
+
+  /* ==========================================================
+     7 · NEWSLETTER
+     ========================================================== */
+  const form = document.getElementById('news-form');
+  const msg  = document.getElementById('news-msg');
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const v = document.getElementById('news-email').value.trim();
+    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+    msg.textContent = ok ? 'Welcome to the ceremony.' : 'A valid email, please.';
+    msg.style.color = ok ? 'rgba(245,158,11,0.6)' : 'rgba(255,255,255,0.35)';
+    msg.classList.add('show');
+    if (ok) form.reset();
+    clearTimeout(msg._t);
+    msg._t = setTimeout(() => msg.classList.remove('show'), 4000);
+  });
+
+  /* ==========================================================
+     8 · RESIZE
+     ========================================================== */
+  let rz;
+  window.addEventListener('resize', () => {
+    clearTimeout(rz);
+    rz = setTimeout(() => { sizeCanvas(); ScrollTrigger.refresh(); }, 160);
+  });
+
+  /* ==========================================================
+     9 · BOOT
+     ========================================================== */
+  window.scrollTo(0, 0);
+
+  extractFrames()
+    .then(() => {
+      ready = true;
+      setProgress(1);
+      buildScroll();
+      ScrollTrigger.refresh();
+      setTimeout(hideLoader, 260);
+    })
+    .catch(err => {
+      // Extraction failed (codec, decode error, file missing) — the site still
+      // works, it just opens on a static first frame instead of the reel.
+      console.error('[gnolex] frame extraction failed:', err);
+      ready = true;
+      setProgress(1);
+      buildScroll();
+      ScrollTrigger.refresh();
+      setTimeout(hideLoader, 260);
+    });
+
+})();
+</script>
+</body>
+</html>
